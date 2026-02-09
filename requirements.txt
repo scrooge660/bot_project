@@ -1,5 +1,5 @@
-python-telegram-bot==20.3
+python-telegram-bot
 TikTokApi
-pytube==15.0.0
-instaloader==4.11.2
+pytube
+instaloader
 requests

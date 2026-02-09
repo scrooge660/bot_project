@@ -1,5 +1,5 @@
 python-telegram-bot==20.3
-TikTokApi==0.13.0
+TikTokApi
 pytube==15.0.0
 instaloader==4.11.2
 requests

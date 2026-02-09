@@ -1,18 +1,16 @@
 import os
+import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from config import TOKEN, CHANNELS
 from pytube import YouTube
 import instaloader
-from TikTokApi import TikTokApi
 
-# Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Привет! Отправь ссылку на TikTok, Instagram или YouTube, и я скачаю видео для тебя после подписки на каналы."
     )
 
-# Основная логика
 async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
 
@@ -32,16 +30,17 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     link = update.message.text
 
-    # TikTok (без водяного знака)
+    # TikTok через сторонний сервис
     if "tiktok.com" in link:
         try:
-            async with TikTokApi() as api:
-                video = await api.video(url=link)
-                video_bytes = await video.bytes()
-                await update.message.reply_video(video_bytes)
+            r = requests.get(f"https://api.tikmate.app/api/lookup?url={link}")
+            data = r.json()
+            video_url = data['video']['url']  # без водяного знака
+            video_bytes = requests.get(video_url).content
+            await update.message.reply_video(video_bytes)
         except:
             await update.message.reply_text("Не удалось скачать TikTok видео.")
-    
+
     # YouTube
     elif "youtube.com" in link or "youtu.be" in link:
         try:
@@ -61,8 +60,6 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
             shortcode = link.rstrip("/").split("/")[-1]
             post = instaloader.Post.from_shortcode(L.context, shortcode)
             L.download_post(post, target="insta_video")
-            
-            # Находим mp4 файл
             for file in os.listdir("insta_video"):
                 if file.endswith(".mp4"):
                     path = os.path.join("insta_video", file)
@@ -71,11 +68,9 @@ async def handle_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     os.remove(path)
         except:
             await update.message.reply_text("Не удалось скачать Instagram видео.")
-
     else:
         await update.message.reply_text("Не могу распознать ссылку!")
 
-# Запуск бота
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_link))
